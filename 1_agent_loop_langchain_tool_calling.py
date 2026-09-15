@@ -10,10 +10,6 @@ from langsmith import traceable
 MAX_ITERATIONS = 10
 MODEL = "qwen3:1.7b"
 
-
-# --- Tools (LangChain @tool decorator) ---
-
-
 @tool
 def get_product_price(product: str) -> float:
     """Look up the price of a product in the catalog."""
@@ -32,15 +28,13 @@ def apply_discount(price: float, discount_tier: str) -> float:
     return round(price * (1 - discount / 100), 2)
 
 
-# --- Agent Loop ---
-
-
-@traceable(name="LangChain Agent Loop")
+# ---- Agent Loop ------------
+#@traceable(name="Langchain Agent Loop")
 def run_agent(question: str):
-    tools = [get_product_price, apply_discount]
+    tools = [get_product_price,apply_discount]
     tools_dict = {t.name: t for t in tools}
-
-    llm = init_chat_model(f"ollama:{MODEL}", temperature=0)
+    print(f"Tools Dict {tools_dict}")
+    llm = init_chat_model(f"ollama:{MODEL}",temperature=0)
     llm_with_tools = llm.bind_tools(tools)
 
     print(f"Question: {question}")
@@ -67,19 +61,16 @@ def run_agent(question: str):
         HumanMessage(content=question),
     ]
 
-    for iteration in range(1, MAX_ITERATIONS + 1):
+    for iteration in range(1, MAX_ITERATIONS+1):
         print(f"\n--- Iteration {iteration} ---")
-
+        
         ai_message = llm_with_tools.invoke(messages)
-
         tool_calls = ai_message.tool_calls
 
-        # If no tool calls, this is the final answer
         if not tool_calls:
             print(f"\nFinal Answer: {ai_message.content}")
             return ai_message.content
 
-        # Process only the FIRST tool call — force one tool per iteration
         tool_call = tool_calls[0]
         tool_name = tool_call.get("name")
         tool_args = tool_call.get("args", {})
